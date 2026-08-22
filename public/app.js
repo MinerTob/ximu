@@ -1822,6 +1822,8 @@ adminSearch.addEventListener('input', renderAdminUsers);
 function openAdmin() {
   adminView.classList.remove('hidden');
   bringToFront(adminView);
+  // 手机端每次打开都回到用户列表，避免卡在上次选中的详情页
+  document.querySelector('.admin-panel').classList.remove('admin-detail-open');
   state.selectedAdminUserId = null;
   adminDetail.classList.remove('admin-empty');
   adminDetail.innerHTML = '<div class="admin-empty">选择左侧用户，查看聊天记录与警告</div>';
@@ -1830,8 +1832,20 @@ function openAdmin() {
 
 function closeAdmin() {
   adminView.classList.add('hidden');
+  document.querySelector('.admin-panel').classList.remove('admin-detail-open');
   state.adminUserSelected.clear();
   updateAdminBatchBar();
+}
+
+// 管理详情头部统计：手机端只显示关键信息，完整信息放在悬停提示里
+function setAdminStats(user) {
+  const full = `ID ${user.userCode} · 邀请码 ${user.handle} · ${adminStatusText(user)} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`;
+  const el = $('adm-stats');
+  if (!el) return;
+  el.title = full;
+  el.textContent = mobileMode
+    ? `ID ${user.userCode} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`
+    : full;
 }
 
 async function loadAdminUsers() {
@@ -2032,7 +2046,7 @@ async function renderAdminDetail(user) {
 
   renderAvatar($('adm-avatar'), user);
   $('adm-name').textContent = displayName(user);
-  $('adm-stats').textContent = `ID ${user.userCode} · 邀请码 ${user.handle} · ${adminStatusText(user)} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`;
+  setAdminStats(user);
   $('adm-back').addEventListener('click', () =>
     document.querySelector('.admin-panel').classList.remove('admin-detail-open')
   );
@@ -2074,7 +2088,7 @@ async function refreshAdminDetail(user, initial = false) {
     const idx = state.adminUsers.findIndex((u) => u.id === user.id);
     if (idx >= 0) state.adminUsers[idx] = latest;
     renderAdminUsers();
-    $('adm-stats').textContent = `ID ${user.userCode} · 邀请码 ${user.handle} · ${adminStatusText(user)} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`;
+    setAdminStats(user);
     refreshAdminHeadButtons(user);
   } else {
     // 用户已被注销删除
@@ -2243,7 +2257,7 @@ async function deleteWarning(warningId) {
     const li = state.adminUsers.find((u) => u.id === user.id);
     if (li) li.warningCount = user.warningCount;
     renderAdminUsers();
-    $('adm-stats').textContent = `ID ${user.userCode} · 邀请码 ${user.handle} · ${adminStatusText(user)} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`;
+    setAdminStats(user);
   }
   const warnRes = await fetch(`/api/op/warnings?userId=${state.currentAdminUser.id}`, { headers: authHeaders() });
   renderAdminWarnings((await warnRes.json()).warnings);
@@ -2323,7 +2337,7 @@ function adjustAdminUserStats(delta) {
   const li = state.adminUsers.find((u) => u.id === user.id);
   if (li) li.msgCount = user.msgCount;
   renderAdminUsers();
-  $('adm-stats').textContent = `ID ${user.userCode} · 邀请码 ${user.handle} · ${adminStatusText(user)} · 消息 ${user.msgCount} 条 · 警告 ${user.warningCount} 条`;
+  setAdminStats(user);
 }
 
 async function toggleAdminRole(user) {

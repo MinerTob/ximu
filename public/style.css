@@ -2499,6 +2499,34 @@ body.muted-visible .warning-banner {
     display: inline-flex;
   }
 
+  /* 手机端管理头部紧凑化：统计信息保持单行，不遮挡聊天记录 */
+  .admin-chat-head {
+    gap: 6px 10px;
+    padding: 8px 10px;
+  }
+
+  .admin-chat-head-info h3 {
+    font-size: 14px;
+  }
+
+  .admin-chat-head .avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .admin-chat-head .logout-btn {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+
+  .admin-stats {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .adm-warn-panel {
     flex-basis: 200px;
   }
