@@ -1,0 +1,42 @@
+# Render Blueprint：析木聊天室（网页 + 邮箱验证码）
+#
+# 部署方法：
+# 1. 以本目录（chat-app）为仓库根目录，推送到 GitHub/GitLab。
+# 2. 在 Render 的 Blueprint 页面选择 “New + > Blueprint”，
+#    连接仓库即可一键创建服务。
+# 3. 首次部署前，请到服务面板的 Environment 里设置 BREVO_API_KEY
+#    （本文件用 sync: false 占位，不会把密钥写进仓库，更安全）。
+#
+# 注意：
+# - 聊天记录、密钥、上传文件都存在持久磁盘（/var/data）里，
+#   这样每次重新部署/重启都不会丢数据。
+# - Render 免费套餐不支持持久磁盘，本配置使用 Starter 套餐；
+#   若坚持用免费套餐，需要去掉 disk 段，但每次部署数据都会丢。
+services:
+- type: web
+  name: cloud-chat
+  runtime: node
+  plan: starter
+  buildCommand: npm ci
+  startCommand: npm start
+  healthCheckPath: /health
+  disk:
+    name: chat-data
+    mountPath: /var/data
+    sizeGB: 1
+  envVars:
+  - key: NODE_ENV
+    value: production
+  - key: DATA_DIR
+    value: /var/data
+  - key: UPLOAD_DIR
+    value: /var/data/uploads
+  # ===== 邮箱动态验证码（Brevo）=====
+  - key: EMAIL_VERIFY
+    value: "1"
+  - key: MAIL_PROVIDER
+    value: brevo
+  - key: MAIL_FROM
+    value: minertob114@gmail.com
+  - key: BREVO_API_KEY
+    sync: false
