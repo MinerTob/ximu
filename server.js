@@ -370,8 +370,10 @@ app.post('/api/register', (req, res) => {
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ error: '请输入用户名和密码' });
-  const user = db.getUserByName(username);
+  const loginId = String(username || '').trim();
+  if (!loginId || !password) return res.status(400).json({ error: '请输入用户名/邮箱和密码' });
+  // 支持用用户名或注册邮箱登录（邮箱统一转小写匹配）
+  const user = db.getUserByName(loginId) || db.getUserByEmail(loginId.toLowerCase());
   if (!user || !db.verifyPassword(user, password)) return res.status(401).json({ error: '用户名或密码错误' });
   if (user.banned) {
     return res.status(403).json({

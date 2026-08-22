@@ -436,7 +436,7 @@ authForm.addEventListener('submit', async (e) => {
   const password = passwordInput.value;
   const remember = $('remember').checked;
   if (!username || !password) {
-    showAuthError('请输入用户名和密码');
+    showAuthError('请输入用户名/邮箱和密码');
     return;
   }
   authSubmit.disabled = true;

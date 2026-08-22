@@ -1,7 +1,7 @@
 /* 三语言（简中 / 繁中 / 美式英语） */
 window.I18N = (function () {
   const zhCN = {
-    appName: '析木聊天室', login: '登录', register: '注册', username: '用户名', password: '密码',
+    appName: '析木聊天室', login: '登录', register: '注册', username: '用户名 / 邮箱', password: '密码',
     authSub: '注册登录后，即可挑选在线用户实时聊天，支持图片和视频',
     remember: '记住登录状态（同电脑多开时建议取消勾选）', loginBtn: '登录', registerBtn: '注册',
     searchUsers: '搜索用户…', userList: '用户列表', online: '在线', offline: '离线',
@@ -47,7 +47,7 @@ window.I18N = (function () {
     batchDelete: '批量删除', warn: '警告', delete: '删除', myStatus: '在线',
     emptyHint: '💬 在左侧选择一位用户，开始你们的对话',
     selectedCount: '已选 {n} 条', editing: '（已编辑）', recalledSelf: '你撤回了一条消息', recalledOther: '对方撤回了一条消息',
-    usernamePh: '2-20 位中文或字母数字', passwordPh: '至少 4 位', accountAction: '账号处理',
+    usernamePh: '用户名或邮箱', passwordPh: '至少 4 位', accountAction: '账号处理',
     muteTab: '🔇 禁言', banTab: '⛔ 封号', profileTitle: '个人资料', userProfile: '个人主页',
     warningTitle: '违规警告', warningOk: '我知道了', muteDuration: '自定义禁言时长（分钟，可直接输入编辑）',
     muteReasonPh: '例如：刷屏骚扰 / 严重违规', confirmMute: '确认禁言', confirmBan: '确认封号',
@@ -64,7 +64,7 @@ window.I18N = (function () {
   };
 
   const zhTW = {
-    appName: '析木聊天室', login: '登入', register: '註冊', username: '使用者名稱', password: '密碼',
+    appName: '析木聊天室', login: '登入', register: '註冊', username: '使用者名稱 / 郵箱', password: '密碼',
     authSub: '註冊登入後，即可挑選線上使用者即時聊天，支援圖片與影片',
     remember: '記住登入狀態（同電腦多開時建議取消勾選）', loginBtn: '登入', registerBtn: '註冊',
     searchUsers: '搜尋使用者…', userList: '使用者列表', online: '線上', offline: '離線',
@@ -110,7 +110,7 @@ window.I18N = (function () {
     batchDelete: '批次刪除', warn: '警告', delete: '刪除', myStatus: '線上',
     emptyHint: '💬 在左側選擇一位使用者，開始你們的對話',
     selectedCount: '已選 {n} 條', editing: '（已編輯）', recalledSelf: '你撤回了一則訊息', recalledOther: '對方撤回了一則訊息',
-    usernamePh: '2-20 位中文或字母數字', passwordPh: '至少 4 位', accountAction: '帳號處理',
+    usernamePh: '使用者名稱或郵箱', passwordPh: '至少 4 位', accountAction: '帳號處理',
     muteTab: '🔇 禁言', banTab: '⛔ 封號', profileTitle: '個人資料', userProfile: '個人主頁',
     warningTitle: '違規警告', warningOk: '我知道了', muteDuration: '自訂禁言時長（分鐘，可直接輸入編輯）',
     muteReasonPh: '例如：刷屏騷擾 / 嚴重違規', confirmMute: '確認禁言', confirmBan: '確認封號',
@@ -127,7 +127,7 @@ window.I18N = (function () {
   };
 
   const en = {
-    appName: 'Cloud Chat', login: 'Log In', register: 'Sign Up', username: 'Username', password: 'Password',
+    appName: 'Cloud Chat', login: 'Log In', register: 'Sign Up', username: 'Username / Email', password: 'Password',
     authSub: 'Sign up and chat in real time with images and videos',
     remember: 'Remember me (uncheck for multi-account)', loginBtn: 'Log In', registerBtn: 'Sign Up',
     searchUsers: 'Search users…', userList: 'Users', online: 'Online', offline: 'Offline',
@@ -173,7 +173,7 @@ window.I18N = (function () {
     batchDelete: 'Batch Delete', warn: 'Warn', delete: 'Delete', myStatus: 'Online',
     emptyHint: '💬 Select a user on the left to start chatting',
     selectedCount: '{n} selected', editing: '（Edited）', recalledSelf: 'You recalled a message', recalledOther: 'Message recalled',
-    usernamePh: '2-20 characters', passwordPh: 'At least 4 characters', accountAction: 'Account Action',
+    usernamePh: 'Username or email', passwordPh: 'At least 4 characters', accountAction: 'Account Action',
     muteTab: '🔇 Mute', banTab: '⛔ Ban', profileTitle: 'Profile', userProfile: 'Profile Page',
     warningTitle: 'Warnings', warningOk: 'Got it', muteDuration: 'Mute duration (minutes, editable)',
     muteReasonPh: 'e.g. spam / serious violation', confirmMute: 'Confirm Mute', confirmBan: 'Confirm Ban',
