@@ -1392,12 +1392,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  opacity: 0;
-  transition: opacity 0.12s;
+  opacity: 1;
   padding-left: 4px;
 }
 
-.adm-msg-row:hover .adm-msg-actions,
 .adm-msg-row.selected .adm-msg-actions {
   opacity: 1;
 }
@@ -2497,11 +2495,6 @@ body.muted-visible .warning-banner {
 
   .admin-chat-head .back-btn {
     display: inline-flex;
-  }
-
-  /* 手机端没有悬停，管理消息的警告/删除按钮常显 */
-  .adm-msg-actions {
-    opacity: 1;
   }
 
   /* 手机端管理头部紧凑化：统计信息保持单行，不遮挡聊天记录 */
