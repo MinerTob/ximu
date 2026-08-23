@@ -20,8 +20,6 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 // 自动翻译：默认用 Google 免费翻译接口；可用 TRANSLATE_URL 换成自建/其他服务，TRANSLATE_DISABLED=1 关闭
 const TRANSLATE_URL = process.env.TRANSLATE_URL || 'https://translate.googleapis.com/translate_a/single';
 const TRANSLATE_DISABLED = process.env.TRANSLATE_DISABLED === '1';
-// 翻译提供方：google（默认）/ libretranslate（自建，见 render.yaml 的 ximu-translate 服务）
-const TRANSLATE_PROVIDER = (process.env.TRANSLATE_PROVIDER || 'google').toLowerCase();
 // MyMemory 备用源：带邮箱参数可走独立每日额度，避免共享 IP 额度被用尽（默认用发件邮箱）
 const TRANSLATE_MYMEMORY_EMAIL = process.env.TRANSLATE_MYMEMORY_EMAIL || process.env.MAIL_FROM || '';
 const translateMemCache = new Map();
@@ -471,34 +469,33 @@ function extractGoogleTranslation(data) {
     .join('');
 }
 
+// 谷歌翻译：优先用 Chrome 扩展接口（clients5，机房 IP 下不易被 429 限流），
+// 再用可配置的常规接口兜底。两种返回格式都能被 extractGoogleTranslation 解析。
 async function fetchGoogleTranslation(text, toLang) {
+  const urls = [];
+  if (TRANSLATE_URL === 'https://translate.googleapis.com/translate_a/single') {
+    urls.push(
+      `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(toLang)}&q=${encodeURIComponent(text)}`
+    );
+  }
   const sep = TRANSLATE_URL.includes('?') ? '&' : '?';
-  const url = `${TRANSLATE_URL}${sep}client=gtx&sl=auto&tl=${encodeURIComponent(toLang)}&dt=t&q=${encodeURIComponent(text)}`;
-  const r = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) throw new Error('google translate http ' + r.status);
-  const t = extractGoogleTranslation(await r.json());
-  if (!t) throw new Error('google translate empty');
-  return t;
-}
-
-// 自建 LibreTranslate（只加载中英模型，不限请求量）
-async function fetchLibreTranslation(text, fromLang, toLang) {
-  const base = TRANSLATE_URL.replace(/\/+$/, '');
-  const url = base.endsWith('/translate') ? base : `${base}/translate`;
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q: text, source: fromLang, target: toLang, format: 'text' }),
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!r.ok) throw new Error('libretranslate http ' + r.status);
-  const data = await r.json();
-  const t = data && String(data.translatedText || '').trim();
-  if (!t) throw new Error('libretranslate empty');
-  return t;
+  urls.push(`${TRANSLATE_URL}${sep}client=gtx&sl=auto&tl=${encodeURIComponent(toLang)}&dt=t&q=${encodeURIComponent(text)}`);
+  let lastErr = null;
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error('google translate http ' + r.status);
+      const t = extractGoogleTranslation(await r.json());
+      if (!t) throw new Error('google translate empty');
+      return t;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('google translate failed');
 }
 
 // 备用翻译源：Google 免费接口被限流（429）时自动切换 MyMemory
@@ -531,14 +528,9 @@ app.post('/api/translate', requireAuth, async (req, res) => {
   }
 
   let translation = '';
-  const libFrom = pair.from === 'zh' ? 'zh' : pair.from;
-  const libTo = pair.to === 'zh-CN' ? 'zh' : pair.to;
   const mmFrom = pair.from === 'zh' ? 'zh-CN' : pair.from;
   const mmTo = pair.to === 'zh-CN' ? 'zh-CN' : pair.to;
   const attempts = [];
-  if (TRANSLATE_PROVIDER === 'libretranslate') {
-    attempts.push(() => fetchLibreTranslation(text, libFrom, libTo));
-  }
   attempts.push(() => fetchGoogleTranslation(text, pair.to));
   attempts.push(() => fetchMyMemoryTranslation(text, mmFrom, mmTo));
   for (const attempt of attempts) {

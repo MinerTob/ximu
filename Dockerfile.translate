@@ -1,4 +1,0 @@
-# 自建翻译服务：LibreTranslate（只启用中英模型，请求量不设限）
-# 模型会下载到 /home/libretranslate/.local/share，挂载持久磁盘避免每次部署重新下载
-FROM libretranslate/libretranslate:latest
-ENV HOME=/home/libretranslate

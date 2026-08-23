@@ -31,11 +31,9 @@ services:
     value: /var/data
   - key: UPLOAD_DIR
     value: /var/data/uploads
-  # ===== 自动翻译：指向自建的 LibreTranslate 服务（见下方 ximu-translate）=====
+  # ===== 自动翻译：谷歌翻译（优先 Chrome 扩展接口绕开 429，MyMemory 兜底）=====
   - key: TRANSLATE_PROVIDER
-    value: libretranslate
-  - key: TRANSLATE_URL
-    value: https://ximu-translate.onrender.com
+    value: google
   # ===== 邮箱动态验证码（Brevo）=====
   - key: EMAIL_VERIFY
     value: "1"
@@ -45,28 +43,3 @@ services:
     value: minertob114@gmail.com
   - key: BREVO_API_KEY
     sync: false
-
-# 自建翻译服务（LibreTranslate）：不限请求量，只加载中英模型。
-# 注意：翻译模型需要约 1GB+ 内存，Starter(512MB) 可能内存不足，
-# 若日志出现 OOM（内存溢出）请把本服务的 plan 改成 standard。
-- type: web
-  name: ximu-translate
-  runtime: docker
-  plan: starter
-  dockerfilePath: Dockerfile.translate
-  healthCheckPath: /health
-  disk:
-    name: translate-models
-    mountPath: /home/libretranslate/.local/share
-    sizeGB: 1
-  envVars:
-  - key: LT_LOAD_ONLY
-    value: zh,en
-  - key: LT_REQ_LIMIT
-    value: "0"
-  - key: LT_CHAR_LIMIT
-    value: "2000"
-  - key: LT_UPDATE_MODELS
-    value: "true"
-  - key: LT_API_KEYS
-    value: "false"

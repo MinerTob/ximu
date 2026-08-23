@@ -85,13 +85,11 @@ npm start
 - 规则：消息包含中文（简体/繁体都算）→ 自动翻译成**英语**；纯英文消息 → 自动翻译成**简体中文**；其他语言/表情不翻译；
 - 翻译结果显示在每条文字消息的下方（微信风格：白色小方框挂在气泡下面），原文保留不变；
 - 翻译结果会缓存（内存 + 数据库），同一句话只调用一次翻译服务；前端每个浏览器也会缓存，翻历史不重复请求；
-- **自建翻译服务（推荐，生产部署默认）**：render.yaml 里带一个 `ximu-translate` 服务（LibreTranslate，只启用中英模型、不设请求上限），主服务用 `TRANSLATE_PROVIDER=libretranslate` + `TRANSLATE_URL` 指向它，翻译不再依赖任何公共接口、不会被限流拒绝；
-- 也可以继续用公共接口：默认 Google 免费接口，被限流（429）时自动切 MyMemory 备用源（带邮箱参数走独立每日额度，默认复用 `MAIL_FROM`，可用 `TRANSLATE_MYMEMORY_EMAIL` 单独指定）；两条路都不通则不显示翻译（不影响聊天）；
+- **谷歌翻译（生产部署默认）**：优先走谷歌 **Chrome 扩展接口**（`clients5.google.com`，机房 IP 下比常规接口更不易被 429 限流），再走常规接口兜底；两条都被限流时才切 MyMemory 备用源（带邮箱参数走独立每日额度，默认复用 `MAIL_FROM`，可用 `TRANSLATE_MYMEMORY_EMAIL` 单独指定）；全都不通则不显示翻译（不影响聊天）；
 - 可用环境变量更换翻译服务：
-  - `TRANSLATE_PROVIDER`：`google`（默认）/ `libretranslate`（自建）；
-  - `TRANSLATE_URL`：`google` 模式下为 Google 接口地址（默认 `https://translate.googleapis.com/translate_a/single`）；`libretranslate` 模式下为自建服务地址（如 `https://ximu-translate.onrender.com`）；
+  - `TRANSLATE_URL`：Google 接口地址（默认 `https://translate.googleapis.com/translate_a/single`，需要返回 Google 格式的 JSON）；
   - `TRANSLATE_DISABLED=1`：关闭自动翻译；
-- **隐私说明**：需要翻译的消息文本会发送给翻译服务商（自建模式留在自己的服务器上；公共接口模式默认 Google / MyMemory）。如果介意，请关闭自动翻译。
+- **隐私说明**：需要翻译的消息文本会发送给 Google（或兜底 MyMemory）。如果介意，请关闭自动翻译。
 
 ## 邮箱动态验证码
 
