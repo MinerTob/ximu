@@ -2499,6 +2499,11 @@ body.muted-visible .warning-banner {
     display: inline-flex;
   }
 
+  /* 手机端没有悬停，管理消息的警告/删除按钮常显 */
+  .adm-msg-actions {
+    opacity: 1;
+  }
+
   /* 手机端管理头部紧凑化：统计信息保持单行，不遮挡聊天记录 */
   .admin-chat-head {
     gap: 6px 10px;

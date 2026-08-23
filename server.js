@@ -467,6 +467,30 @@ function extractGoogleTranslation(data) {
     .join('');
 }
 
+async function fetchGoogleTranslation(text, toLang) {
+  const sep = TRANSLATE_URL.includes('?') ? '&' : '?';
+  const url = `${TRANSLATE_URL}${sep}client=gtx&sl=auto&tl=${encodeURIComponent(toLang)}&dt=t&q=${encodeURIComponent(text)}`;
+  const r = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!r.ok) throw new Error('google translate http ' + r.status);
+  const t = extractGoogleTranslation(await r.json());
+  if (!t) throw new Error('google translate empty');
+  return t;
+}
+
+// 备用翻译源：Google 免费接口被限流（429）时自动切换 MyMemory
+async function fetchMyMemoryTranslation(text, fromLang, toLang) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+  const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error('mymemory http ' + r.status);
+  const data = await r.json();
+  const t = data && data.responseData ? String(data.responseData.translatedText || '').trim() : '';
+  if (!t || /no query|invalid|exceeded/i.test(t)) throw new Error('mymemory empty');
+  return t;
+}
+
 app.post('/api/translate', requireAuth, async (req, res) => {
   const text = String((req.body && req.body.text) || '').trim().slice(0, 1000);
   if (!text) return res.json({ text, translation: '', needsTranslation: false });
@@ -484,23 +508,22 @@ app.post('/api/translate', requireAuth, async (req, res) => {
     return res.json({ text, translation: dbHit, from: pair.from, to: pair.to, cached: true });
   }
 
+  let translation = '';
   try {
-    const sep = TRANSLATE_URL.includes('?') ? '&' : '?';
-    const url = `${TRANSLATE_URL}${sep}client=gtx&sl=auto&tl=${encodeURIComponent(pair.to)}&dt=t&q=${encodeURIComponent(text)}`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!r.ok) throw new Error('translate http ' + r.status);
-    const data = await r.json();
-    const translation = extractGoogleTranslation(data);
-    if (!translation) throw new Error('empty translation');
-    translateMemCache.set(cacheKey, translation);
-    db.saveTranslation(text, pair.from, pair.to, translation);
-    res.json({ text, translation, from: pair.from, to: pair.to });
+    translation = await fetchGoogleTranslation(text, pair.to);
   } catch (_) {
-    res.json({ text, translation: '', from: pair.from, to: pair.to, error: true });
+    try {
+      const mmFrom = pair.from === 'zh' ? 'zh-CN' : pair.from;
+      const mmTo = pair.to === 'zh-CN' ? 'zh-CN' : pair.to;
+      translation = await fetchMyMemoryTranslation(text, mmFrom, mmTo);
+    } catch (_) {
+      translation = '';
+    }
   }
+  if (!translation) return res.json({ text, translation: '', from: pair.from, to: pair.to, error: true });
+  translateMemCache.set(cacheKey, translation);
+  db.saveTranslation(text, pair.from, pair.to, translation);
+  res.json({ text, translation, from: pair.from, to: pair.to });
 });
 
 app.get('/api/users', requireAuth, (req, res) => {
