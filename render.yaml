@@ -31,9 +31,10 @@ services:
     value: /var/data
   - key: UPLOAD_DIR
     value: /var/data/uploads
-  # ===== 自动翻译：谷歌翻译（优先 Chrome 扩展接口绕开 429，MyMemory 兜底）=====
-  - key: TRANSLATE_PROVIDER
-    value: google
+  # ===== 自动翻译：谷歌翻译（经 Cloudflare Worker 中转，绕开机房 429 限流）=====
+  # 部署好 Worker（见 README「自动翻译 Bot」）后，在 Render 面板 Environment 里
+  # 添加环境变量 TRANSLATE_URL，值填你的 Worker 地址（例如 https://ximu-translate.xxx.workers.dev）。
+  # 未配置时服务器走谷歌接口直连兜底。
   # ===== 邮箱动态验证码（Brevo）=====
   - key: EMAIL_VERIFY
     value: "1"

@@ -17,7 +17,9 @@ const io = new Server(server);
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-// 自动翻译：默认用 Google 免费翻译接口；可用 TRANSLATE_URL 换成自建/其他服务，TRANSLATE_DISABLED=1 关闭
+// 自动翻译：生产环境用 Cloudflare Worker 中转谷歌翻译（绕开 Render 机房 IP 的 429 限流），
+// 把 Worker 地址填到 TRANSLATE_URL（见 cloudflare-worker.js 与 README「自动翻译 Bot」）；
+// 未配置时用谷歌接口直连兜底；TRANSLATE_DISABLED=1 可整体关闭
 const TRANSLATE_URL = process.env.TRANSLATE_URL || 'https://translate.googleapis.com/translate_a/single';
 const TRANSLATE_DISABLED = process.env.TRANSLATE_DISABLED === '1';
 // MyMemory 备用源：带邮箱参数可走独立每日额度，避免共享 IP 额度被用尽（默认用发件邮箱）
@@ -464,13 +466,20 @@ function translatePair(text) {
 
 function extractGoogleTranslation(data) {
   if (!Array.isArray(data) || !Array.isArray(data[0])) return '';
+  const first = data[0];
+  // 新版紧凑格式（clients5 / 部分机房 IP 返回）：[["翻译结果","源语言"]]
+  if (first.length >= 1 && typeof first[0] === 'string') {
+    return String(first[0] || '');
+  }
+  // 旧版完整格式：[[["翻译结果","原文",...], ...], ...]
   return data[0]
     .map((seg) => (Array.isArray(seg) ? String(seg[0] || '') : ''))
     .join('');
 }
 
-// 谷歌翻译：优先用 Chrome 扩展接口（clients5，机房 IP 下不易被 429 限流），
-// 再用可配置的常规接口兜底。两种返回格式都能被 extractGoogleTranslation 解析。
+// 谷歌翻译：配置了 TRANSLATE_URL（Cloudflare Worker 中转）时只走该地址；
+// 未配置时按原样尝试 Chrome 扩展接口（clients5）+ 常规接口。
+// Worker 与谷歌接口都返回 Google 格式的 JSON，extractGoogleTranslation 均可解析。
 async function fetchGoogleTranslation(text, toLang) {
   const urls = [];
   if (TRANSLATE_URL === 'https://translate.googleapis.com/translate_a/single') {

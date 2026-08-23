@@ -85,11 +85,18 @@ npm start
 - 规则：消息包含中文（简体/繁体都算）→ 自动翻译成**英语**；纯英文消息 → 自动翻译成**简体中文**；其他语言/表情不翻译；
 - 翻译结果显示在每条文字消息的下方（微信风格：白色小方框挂在气泡下面），原文保留不变；
 - 翻译结果会缓存（内存 + 数据库），同一句话只调用一次翻译服务；前端每个浏览器也会缓存，翻历史不重复请求；
-- **谷歌翻译（生产部署默认）**：优先走谷歌 **Chrome 扩展接口**（`clients5.google.com`，机房 IP 下比常规接口更不易被 429 限流），再走常规接口兜底；两条都被限流时才切 MyMemory 备用源（带邮箱参数走独立每日额度，默认复用 `MAIL_FROM`，可用 `TRANSLATE_MYMEMORY_EMAIL` 单独指定）；全都不通则不显示翻译（不影响聊天）；
+- **谷歌翻译（生产部署默认）**：Render 机房 IP 直接调谷歌免费接口会被限流（429），所以线上走 **Cloudflare Worker 中转代理**（免费、无需绑卡、每日 10 万次请求）：服务器把翻译请求发给 Worker，由 Worker 转发给谷歌翻译 API；Worker 内部在常规接口被限流时还会自动换 Chrome 扩展接口再试一次，全部失败才不显示翻译（不影响聊天）；
+- **部署 Cloudflare Worker（一次性，约 3 分钟）**：
+  1. 打开 https://dash.cloudflare.com 注册或登录免费账号；
+  2. 左侧「Workers 和 Pages」→「创建」→「创建 Worker」；
+  3. 名称填 `ximu-translate`（可自定），点「部署」；
+  4. 点「编辑代码」，把仓库根目录 `cloudflare-worker.js` 的内容全部粘贴进去覆盖默认代码，再点「部署」；
+  5. 部署完成后页面显示 Worker 地址（形如 `https://ximu-translate.你的子域.workers.dev`）；
+  6. 把该地址填到 Render 环境变量 `TRANSLATE_URL`（值形如 `https://ximu-translate.xxx.workers.dev`），保存后重新部署；
 - 可用环境变量更换翻译服务：
-  - `TRANSLATE_URL`：Google 接口地址（默认 `https://translate.googleapis.com/translate_a/single`，需要返回 Google 格式的 JSON）；
+  - `TRANSLATE_URL`：谷歌翻译代理地址（默认 `https://translate.googleapis.com/translate_a/single`；线上应填上面的 Worker 地址，需要返回 Google 格式的 JSON）；
   - `TRANSLATE_DISABLED=1`：关闭自动翻译；
-- **隐私说明**：需要翻译的消息文本会发送给 Google（或兜底 MyMemory）。如果介意，请关闭自动翻译。
+- **隐私说明**：需要翻译的消息文本会发送给 Google（经由 Cloudflare Worker 中转）。如果介意，请关闭自动翻译。
 
 ## 邮箱动态验证码
 
