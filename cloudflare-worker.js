@@ -12,14 +12,27 @@
 //   5. 部署完成后页面会显示 Worker 地址，形如
 //      https://ximu-translate.你的子域.workers.dev；
 //   6. 把该地址填到 Render 环境变量 TRANSLATE_URL 里（详见 README「自动翻译 Bot」）。
+//
+// 注意：谷歌 2026 年起对 /translate_a/single?client=gtx 这条老路径封得很严，
+//       所以这里改走 /translate_a/t + client=dict-chrome-ex（实测仍可用），
+//       并依次换域名、换 client 参数兜底。
 // ============================================================
 
-const GOOGLE_API = 'https://translate.googleapis.com/translate_a/single';
+// 依次尝试的组合：[域名+路径, client 参数]
+const CANDIDATES = [
+  ['https://translate.googleapis.com/translate_a/t', 'dict-chrome-ex'],
+  ['https://clients5.google.com/translate_a/t', 'dict-chrome-ex'],
+  ['https://translate.googleapis.com/translate_a/t', 'at'],
+  ['https://clients5.google.com/translate_a/t', 'at'],
+];
 
-// 可选：加一个访问口令防止别人白嫖你的 Worker。
-// 开启后服务器请求需带 ?token=xxx（配合 server.js 的 fetchGoogleTranslation 修改使用），
-// 一般家庭/小团体使用不需要，留空即可。
-const ACCESS_TOKEN = '';
+const HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  Accept: 'application/json',
+  Referer: 'https://translate.google.com/',
+  Origin: 'https://translate.google.com',
+};
 
 export default {
   async fetch(request) {
@@ -29,57 +42,39 @@ export default {
     }
 
     const url = new URL(request.url);
-
-    // 可选鉴权：与 ACCESS_TOKEN 不匹配直接 403
-    if (ACCESS_TOKEN && url.searchParams.get('token') !== ACCESS_TOKEN) {
-      return new Response('Forbidden', { status: 403 });
+    const sl = url.searchParams.get('sl') || 'auto';
+    const tl = url.searchParams.get('tl');
+    const q = url.searchParams.get('q');
+    if (!tl || !q) {
+      return new Response('missing tl/q', { status: 400 });
     }
 
-    // 1) 先走常规翻译接口（把收到的参数原样转发）
-    const target = new URL(GOOGLE_API);
-    url.searchParams.forEach((value, key) => target.searchParams.append(key, value));
-    if (!target.searchParams.has('client')) target.searchParams.set('client', 'gtx');
-
-    let resp = await fetch(target.toString(), {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        Accept: 'application/json',
-        Referer: 'https://translate.google.com/',
-      },
-    });
-
-    // 2) 被限流(429)或出错时，换 Chrome 扩展接口再试一次
-    if (!resp.ok) {
-      const c5 = new URL('https://clients5.google.com/translate_a/t');
-      c5.searchParams.set('client', 'dict-chrome-ex');
-      const sl = target.searchParams.get('sl') || 'auto';
-      const tl = target.searchParams.get('tl');
-      const q = target.searchParams.get('q');
-      if (tl && q) {
-        c5.searchParams.set('sl', sl);
-        c5.searchParams.set('tl', tl);
-        c5.searchParams.set('q', q);
-        const retry = await fetch(c5.toString(), {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            Accept: 'application/json',
-            Referer: 'https://translate.google.com/',
-          },
-        });
-        if (retry.ok) resp = retry;
+    let lastErr = null;
+    for (const [base, client] of CANDIDATES) {
+      const target = new URL(base);
+      target.searchParams.set('client', client);
+      target.searchParams.set('sl', sl);
+      target.searchParams.set('tl', tl);
+      target.searchParams.set('q', q);
+      try {
+        const resp = await fetch(target.toString(), { headers: HEADERS });
+        if (resp.ok) {
+          const body = await resp.text();
+          return new Response(body, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+              'Access-Control-Allow-Origin': '*',
+            },
+          });
+        }
+        lastErr = new Error('google http ' + resp.status);
+      } catch (err) {
+        lastErr = err;
       }
     }
 
-    const body = await resp.text();
-    return new Response(body, {
-      status: resp.status,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return new Response('translate failed: ' + (lastErr ? lastErr.message : 'unknown'), { status: 502 });
   },
 };
