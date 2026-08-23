@@ -782,6 +782,7 @@ body {
 
 #message-input {
   flex: 1;
+  min-width: 0;
   resize: none;
   border: 1px solid #dde2ec;
   border-radius: 12px;
@@ -1186,6 +1187,7 @@ body {
   padding: 8px 11px;
   font-size: 13px;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .admin-warning .warn-meta {
@@ -1203,6 +1205,7 @@ body {
 
 .warn-form textarea {
   flex: 1;
+  min-width: 0;
   resize: none;
   border: 1px solid #dde2ec;
   border-radius: 9px;
@@ -1455,7 +1458,8 @@ body {
 }
 
 .adm-warn-panel {
-  flex: 0 0 240px;
+  flex: 0 0 auto;
+  max-height: 45vh;
   min-height: 0;
   border-top: 1px solid #e6eaf2;
   background: var(--panel);
@@ -1500,8 +1504,9 @@ body {
 }
 
 .admin-warnings {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 28vh;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2525,7 +2530,26 @@ body.muted-visible .warning-banner {
     text-overflow: ellipsis;
   }
 
-  .adm-warn-panel {
-    flex-basis: 200px;
+  /* 手机端图片/视频自适应，文字不溢出 */
+  .bubble,
+  .adm-bubble {
+    min-width: 0;
+  }
+
+  .bubble img,
+  .bubble video,
+  .adm-bubble img,
+  .adm-bubble video {
+    max-width: 100%;
+  }
+
+  .adm-msg-row {
+    max-width: 92%;
+  }
+
+  /* 手机端输入框字号不小于16px，避免聚焦时页面被自动放大 */
+  .warn-form textarea,
+  #message-input {
+    font-size: 16px;
   }
 }
