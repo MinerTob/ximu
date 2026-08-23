@@ -20,6 +20,8 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 // 自动翻译：默认用 Google 免费翻译接口；可用 TRANSLATE_URL 换成自建/其他服务，TRANSLATE_DISABLED=1 关闭
 const TRANSLATE_URL = process.env.TRANSLATE_URL || 'https://translate.googleapis.com/translate_a/single';
 const TRANSLATE_DISABLED = process.env.TRANSLATE_DISABLED === '1';
+// MyMemory 备用源：带邮箱参数可走独立每日额度，避免共享 IP 额度被用尽（默认用发件邮箱）
+const TRANSLATE_MYMEMORY_EMAIL = process.env.TRANSLATE_MYMEMORY_EMAIL || process.env.MAIL_FROM || '';
 const translateMemCache = new Map();
 // 邮箱动态验证码：EMAIL_VERIFY=1 时注册必须验证邮箱；MAIL_PROVIDER=console（默认，验证码打印到控制台/存库便于调试）或 resend / brevo（真实发信，任意邮箱可收到）
 const EMAIL_VERIFY = process.env.EMAIL_VERIFY !== '0';
@@ -482,7 +484,8 @@ async function fetchGoogleTranslation(text, toLang) {
 
 // 备用翻译源：Google 免费接口被限流（429）时自动切换 MyMemory
 async function fetchMyMemoryTranslation(text, fromLang, toLang) {
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+  let url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+  if (TRANSLATE_MYMEMORY_EMAIL) url += `&de=${encodeURIComponent(TRANSLATE_MYMEMORY_EMAIL)}`;
   const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
   if (!r.ok) throw new Error('mymemory http ' + r.status);
   const data = await r.json();
