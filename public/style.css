@@ -839,6 +839,27 @@ body {
   max-width: 80vw;
 }
 
+/* 图片查看灯箱 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  cursor: zoom-out;
+  padding: 16px;
+}
+
+.lightbox img {
+  max-width: 96vw;
+  max-height: 94vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

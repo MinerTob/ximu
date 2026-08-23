@@ -131,6 +131,8 @@ const messageInput = $('message-input');
 const fileInput = $('file-input');
 const sendBtn = $('send-btn');
 const toastEl = $('toast');
+const lightbox = $('lightbox');
+const lightboxImg = $('lightbox-img');
 const warningBanner = $('warning-banner');
 const warningCount = $('warning-count');
 const warningBannerClose = $('warning-banner-close');
@@ -313,6 +315,15 @@ function toast(text) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 2600);
 }
+
+// 图片灯箱：点击图片全屏查看，点任意处关闭
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.remove('hidden');
+  bringToFront(lightbox);
+}
+
+lightbox.addEventListener('click', () => lightbox.classList.add('hidden'));
 
 const SERVER_ERR_ZH = {
   '用户名需为 2-20 位中文、字母、数字、下划线或短横线': 'usernameInvalid',
@@ -1197,7 +1208,7 @@ async function buildMessageEl(msg) {
     img.title = '点击查看原图';
     try {
       img.src = await resolveMediaUrl(msg.content);
-      img.addEventListener('click', () => window.open(img.src, '_blank'));
+      img.addEventListener('click', () => openLightbox(img.src));
       bubble.appendChild(img);
     } catch (_) {
       bubble.textContent = '[图片加载失败]';
@@ -2171,7 +2182,7 @@ async function renderAdminMessages() {
           img.alt = '图片';
           img.loading = 'lazy';
           img.title = '点击查看原图';
-          img.addEventListener('click', () => window.open(url, '_blank'));
+          img.addEventListener('click', () => openLightbox(url));
           bubble.appendChild(img);
         } else {
           const video = document.createElement('video');

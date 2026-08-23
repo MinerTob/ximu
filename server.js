@@ -20,6 +20,8 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 // 自动翻译：默认用 Google 免费翻译接口；可用 TRANSLATE_URL 换成自建/其他服务，TRANSLATE_DISABLED=1 关闭
 const TRANSLATE_URL = process.env.TRANSLATE_URL || 'https://translate.googleapis.com/translate_a/single';
 const TRANSLATE_DISABLED = process.env.TRANSLATE_DISABLED === '1';
+// 翻译提供方：google（默认）/ libretranslate（自建，见 render.yaml 的 ximu-translate 服务）
+const TRANSLATE_PROVIDER = (process.env.TRANSLATE_PROVIDER || 'google').toLowerCase();
 // MyMemory 备用源：带邮箱参数可走独立每日额度，避免共享 IP 额度被用尽（默认用发件邮箱）
 const TRANSLATE_MYMEMORY_EMAIL = process.env.TRANSLATE_MYMEMORY_EMAIL || process.env.MAIL_FROM || '';
 const translateMemCache = new Map();
@@ -482,6 +484,23 @@ async function fetchGoogleTranslation(text, toLang) {
   return t;
 }
 
+// 自建 LibreTranslate（只加载中英模型，不限请求量）
+async function fetchLibreTranslation(text, fromLang, toLang) {
+  const base = TRANSLATE_URL.replace(/\/+$/, '');
+  const url = base.endsWith('/translate') ? base : `${base}/translate`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: text, source: fromLang, target: toLang, format: 'text' }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) throw new Error('libretranslate http ' + r.status);
+  const data = await r.json();
+  const t = data && String(data.translatedText || '').trim();
+  if (!t) throw new Error('libretranslate empty');
+  return t;
+}
+
 // 备用翻译源：Google 免费接口被限流（429）时自动切换 MyMemory
 async function fetchMyMemoryTranslation(text, fromLang, toLang) {
   let url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
@@ -512,13 +531,20 @@ app.post('/api/translate', requireAuth, async (req, res) => {
   }
 
   let translation = '';
-  try {
-    translation = await fetchGoogleTranslation(text, pair.to);
-  } catch (_) {
+  const libFrom = pair.from === 'zh' ? 'zh' : pair.from;
+  const libTo = pair.to === 'zh-CN' ? 'zh' : pair.to;
+  const mmFrom = pair.from === 'zh' ? 'zh-CN' : pair.from;
+  const mmTo = pair.to === 'zh-CN' ? 'zh-CN' : pair.to;
+  const attempts = [];
+  if (TRANSLATE_PROVIDER === 'libretranslate') {
+    attempts.push(() => fetchLibreTranslation(text, libFrom, libTo));
+  }
+  attempts.push(() => fetchGoogleTranslation(text, pair.to));
+  attempts.push(() => fetchMyMemoryTranslation(text, mmFrom, mmTo));
+  for (const attempt of attempts) {
     try {
-      const mmFrom = pair.from === 'zh' ? 'zh-CN' : pair.from;
-      const mmTo = pair.to === 'zh-CN' ? 'zh-CN' : pair.to;
-      translation = await fetchMyMemoryTranslation(text, mmFrom, mmTo);
+      translation = await attempt();
+      if (translation) break;
     } catch (_) {
       translation = '';
     }

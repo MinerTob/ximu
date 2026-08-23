@@ -16,6 +16,7 @@
 - 发送文本消息（Enter 发送，Shift+Enter 换行）
 - **自动翻译 Bot**：中文（简/繁）消息自动翻译成英语，英文消息自动翻译成简体中文，结果显示在消息下方
 - 上传图片和视频（最大 150MB），聊天中直接预览
+- 点击聊天中的图片会**全屏放大查看**（页面内灯箱，点任意处关闭），手机端不再依赖弹新窗口
 - **微信式服务器加密**：文本消息加密后存入数据库，图片/视频加密后落盘，外人拿到数据库文件或上传目录也读不出内容
 - 历史消息自动保存，登录任意设备/浏览器都能查看（无需任何设备钥匙，和微信一致）
 - **未读 / 已读**：未读数计入服务端（离线期间收到的消息登录后也亮红点），打开对话即标记已读；自己发出的消息下方显示抖音式「未读 / 已读」小字，对方打开对话后实时变为「已读」
@@ -84,11 +85,13 @@ npm start
 - 规则：消息包含中文（简体/繁体都算）→ 自动翻译成**英语**；纯英文消息 → 自动翻译成**简体中文**；其他语言/表情不翻译；
 - 翻译结果显示在每条文字消息的下方（微信风格：白色小方框挂在气泡下面），原文保留不变；
 - 翻译结果会缓存（内存 + 数据库），同一句话只调用一次翻译服务；前端每个浏览器也会缓存，翻历史不重复请求；
-- 默认使用 Google 免费翻译接口；Google 被限流（429）或不可用时会**自动切换到 MyMemory 备用翻译源**（带邮箱参数走独立每日额度，默认复用 `MAIL_FROM` 发件邮箱，可用环境变量 `TRANSLATE_MYMEMORY_EMAIL` 单独指定），两条路都不通则不显示翻译（不影响聊天）；
+- **自建翻译服务（推荐，生产部署默认）**：render.yaml 里带一个 `ximu-translate` 服务（LibreTranslate，只启用中英模型、不设请求上限），主服务用 `TRANSLATE_PROVIDER=libretranslate` + `TRANSLATE_URL` 指向它，翻译不再依赖任何公共接口、不会被限流拒绝；
+- 也可以继续用公共接口：默认 Google 免费接口，被限流（429）时自动切 MyMemory 备用源（带邮箱参数走独立每日额度，默认复用 `MAIL_FROM`，可用 `TRANSLATE_MYMEMORY_EMAIL` 单独指定）；两条路都不通则不显示翻译（不影响聊天）；
 - 可用环境变量更换翻译服务：
-  - `TRANSLATE_URL`：翻译服务地址（默认 `https://translate.googleapis.com/translate_a/single`，需返回 Google 格式的 JSON）；
+  - `TRANSLATE_PROVIDER`：`google`（默认）/ `libretranslate`（自建）；
+  - `TRANSLATE_URL`：`google` 模式下为 Google 接口地址（默认 `https://translate.googleapis.com/translate_a/single`）；`libretranslate` 模式下为自建服务地址（如 `https://ximu-translate.onrender.com`）；
   - `TRANSLATE_DISABLED=1`：关闭自动翻译；
-- **隐私说明**：需要翻译的消息文本会发送给翻译服务商（默认是 Google，备用是 MyMemory）。如果介意，请关闭自动翻译或换成自建的翻译服务。
+- **隐私说明**：需要翻译的消息文本会发送给翻译服务商（自建模式留在自己的服务器上；公共接口模式默认 Google / MyMemory）。如果介意，请关闭自动翻译。
 
 ## 邮箱动态验证码
 
