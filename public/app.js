@@ -2059,7 +2059,13 @@ async function renderAdminDetail(user) {
   $('adm-refresh').addEventListener('click', () => refreshAdminDetail(user));
   $('adm-warn-selected').addEventListener('click', () => {
     if (state.adminSelected.size === 0) return toast('请先勾选要警告的消息');
-    $('warn-textarea').focus();
+    // 展开违规警告面板，让填写框显示出来并聚焦
+    const panel = $('adm-warn-panel');
+    panel.classList.remove('collapsed');
+    $('adm-warn-toggle').textContent = '▾';
+    const ta = $('warn-textarea');
+    ta.focus();
+    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
     toast(`已选中 ${state.adminSelected.size} 条消息，填写原因后发送`);
   });
   $('adm-delete-selected').addEventListener('click', deleteAdminSelected);
@@ -2202,6 +2208,17 @@ async function renderAdminMessages() {
 
     body.append(meta, bubble, actions);
     row.append(avatar, body);
+    // 手机端友好：点消息整行即可勾选警告（图片/视频/按钮点击除外）
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.adm-check') || e.target.closest('.adm-del-btn')) return;
+      if (e.target.closest('img, video, button, input, label, a')) return;
+      if (!mine || state.selectedAdminUserId === state.me.id) return;
+      const cb = row.querySelector('.adm-check input');
+      if (cb) {
+        cb.checked = !cb.checked;
+        toggleAdminSelect(msg.id, cb.checked);
+      }
+    });
     box.appendChild(row);
   }
 }
