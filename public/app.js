@@ -1135,8 +1135,13 @@ async function renderMessages() {
   emptyHint.classList.toggle('hidden', state.conversation.length > 0);
   jumpPill.classList.add('hidden');
 
+  // 记录本次渲染对应的对话；收起或切换用户后立即中止，
+  // 防止异步渲染把旧消息追加回已清空的界面
+  const uid = state.selectedUserId;
+  const msgs = [...state.conversation];
   let lastDate = null;
-  for (const msg of state.conversation) {
+  for (const msg of msgs) {
+    if (state.selectedUserId !== uid) return;
     const date = fmtDate(msg.createdAt);
     if (date && date !== lastDate) {
       const sep = document.createElement('div');
@@ -1145,8 +1150,11 @@ async function renderMessages() {
       messagesEl.appendChild(sep);
       lastDate = date;
     }
-    messagesEl.appendChild(await buildMessageEl(msg));
+    const el = await buildMessageEl(msg);
+    if (state.selectedUserId !== uid) return;
+    messagesEl.appendChild(el);
   }
+  if (state.selectedUserId !== uid) return;
   scrollToBottom(true);
 }
 
@@ -1432,6 +1440,8 @@ async function recallMessage(msg) {
 
 async function handleIncomingMessage(msg) {
   if (msg.senderId === state.me.id) {
+    // 多开场景：自己其它标签页发的消息，只在自己正开着这段对话时追加
+    if (state.selectedUserId == null || msg.receiverId !== state.selectedUserId) return;
     state.conversation.push(msg);
     await renderAppend(msg);
     return;
@@ -1465,6 +1475,9 @@ function postConversationRead(partnerId) {
 }
 
 async function renderAppend(msg) {
+  const uid = state.selectedUserId;
+  const el = await buildMessageEl(msg);
+  if (state.selectedUserId !== uid) return;
   const dateSep = document.createElement('div');
   dateSep.className = 'msg-date-sep';
   const date = fmtDate(msg.createdAt);
@@ -1473,7 +1486,7 @@ async function renderAppend(msg) {
     dateSep.textContent = date;
     messagesEl.appendChild(dateSep);
   }
-  messagesEl.appendChild(await buildMessageEl(msg));
+  messagesEl.appendChild(el);
   emptyHint.classList.add('hidden');
   maybeScroll();
 }
