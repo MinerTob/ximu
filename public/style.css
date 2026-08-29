@@ -2346,6 +2346,16 @@ body.muted-visible .warning-banner {
   font-size: 12px;
 }
 
+.quick-penalty .cat-wrap {
+  width: 100%;
+}
+
+.quick-penalty textarea {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 2px;
+}
+
 .cat-wrap {
   display: flex;
   align-items: center;

@@ -2882,10 +2882,39 @@ function renderReportReview(box, report, processed) {
   noViolationBtn.addEventListener('click', () => {
     quick.classList.add('hidden');
     send.textContent = I18N.t('sendResult') + ' ▾';
-    const reply = I18N.t('noViolationReply', { target: report.targetName });
+    // 有自定义回复内容时优先发送编辑好的文本，否则用默认“未发现违规”模板
+    const reply = ta.value.trim() || I18N.t('noViolationReply', { target: report.targetName });
     resolveReport(report.id, { reply });
   });
-  quick.append(qLabel, muteBtn, banBtn, noViolationBtn);
+
+  // 反馈类别 + 回复输入框：选类别自动套用标准回复模板，也可手动修改
+  const catWrap = document.createElement('div');
+  catWrap.className = 'cat-wrap';
+  const catLabel = document.createElement('span');
+  catLabel.textContent = I18N.t('feedbackCategory');
+  const sel = document.createElement('select');
+  const cats = [
+    ['catPorn', I18N.t('catPorn')],
+    ['catPolitical', I18N.t('catPolitical')],
+    ['catRights', I18N.t('catRights')],
+    ['catFraud', I18N.t('catFraud')],
+    ['catOther', I18N.t('catOther')],
+  ];
+  for (const [k, label] of cats) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
+  const ta = document.createElement('textarea');
+  ta.placeholder = I18N.t('replyPh');
+  ta.value = report.adminReply || '';
+  sel.addEventListener('change', () => {
+    const cat = cats.find(([k]) => k === sel.value)[1];
+    ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
+  });
+  catWrap.append(catLabel, sel);
+  quick.append(qLabel, muteBtn, banBtn, noViolationBtn, catWrap, ta);
   rev.append(info, ev, actions, quick);
   box.appendChild(rev);
 }
