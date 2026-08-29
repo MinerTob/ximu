@@ -2346,16 +2346,6 @@ body.muted-visible .warning-banner {
   font-size: 12px;
 }
 
-.quick-penalty .cat-wrap {
-  width: 100%;
-}
-
-.quick-penalty textarea {
-  width: 100%;
-  min-height: 64px;
-  margin-top: 2px;
-}
-
 .cat-wrap {
   display: flex;
   align-items: center;
@@ -2385,6 +2375,36 @@ body.muted-visible .warning-banner {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 8px;
+  position: relative;
+}
+
+.penalty-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 150px;
+  background: #fff;
+  border: 1px solid #dde2ec;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.penalty-dropdown button {
+  border: 0;
+  background: transparent;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.penalty-dropdown button:hover {
+  background: #f2f5fa;
 }
 
 .mail-empty {

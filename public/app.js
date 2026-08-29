@@ -2842,52 +2842,7 @@ function renderReportReview(box, report, processed) {
   ev.className = 'report-evidence';
   ev.textContent = report.evidence || '';
 
-  // “发送处理结果”按钮：点一下展开三个处罚选项（禁言 / 封号 / 无违规）
-  const actions = document.createElement('div');
-  actions.className = 'mail-reply-actions';
-  const send = document.createElement('button');
-  send.className = 'send-btn';
-  send.textContent = I18N.t('sendResult') + ' ▾';
-  send.addEventListener('click', () => {
-    quick.classList.toggle('hidden');
-    send.textContent = I18N.t('sendResult') + (quick.classList.contains('hidden') ? ' ▾' : ' ▴');
-  });
-  actions.appendChild(send);
-
-  const quick = document.createElement('div');
-  quick.className = 'quick-penalty hidden';
-  const qLabel = document.createElement('span');
-  qLabel.textContent = I18N.t('quickPenalty');
-  const muteBtn = document.createElement('button');
-  muteBtn.className = 'send-btn';
-  muteBtn.textContent = '🔇 ' + I18N.t('muteNow');
-  muteBtn.addEventListener('click', () => {
-    quick.classList.add('hidden');
-    send.textContent = I18N.t('sendResult') + ' ▾';
-    openMuteModal({ id: report.targetUserId, username: report.targetName }, { report });
-    setMuteMode('mute');
-  });
-  const banBtn = document.createElement('button');
-  banBtn.className = 'send-btn danger-btn';
-  banBtn.textContent = '⛔ ' + I18N.t('banNow');
-  banBtn.addEventListener('click', () => {
-    quick.classList.add('hidden');
-    send.textContent = I18N.t('sendResult') + ' ▾';
-    openMuteModal({ id: report.targetUserId, username: report.targetName }, { report });
-    setMuteMode('ban');
-  });
-  const noViolationBtn = document.createElement('button');
-  noViolationBtn.className = 'send-btn';
-  noViolationBtn.textContent = I18N.t('noViolation');
-  noViolationBtn.addEventListener('click', () => {
-    quick.classList.add('hidden');
-    send.textContent = I18N.t('sendResult') + ' ▾';
-    // 有自定义回复内容时优先发送编辑好的文本，否则用默认“未发现违规”模板
-    const reply = ta.value.trim() || I18N.t('noViolationReply', { target: report.targetName });
-    resolveReport(report.id, { reply });
-  });
-
-  // 反馈类别 + 回复输入框：选类别自动套用标准回复模板，也可手动修改
+  // 反馈类别 + 回复输入框：选类别自动套用对应模板（含“未发现违规”），也可手动修改
   const catWrap = document.createElement('div');
   catWrap.className = 'cat-wrap';
   const catLabel = document.createElement('span');
@@ -2899,6 +2854,7 @@ function renderReportReview(box, report, processed) {
     ['catRights', I18N.t('catRights')],
     ['catFraud', I18N.t('catFraud')],
     ['catOther', I18N.t('catOther')],
+    ['noViolation', I18N.t('noViolation')],
   ];
   for (const [k, label] of cats) {
     const opt = document.createElement('option');
@@ -2911,11 +2867,68 @@ function renderReportReview(box, report, processed) {
   ta.value = report.adminReply || '';
   sel.addEventListener('change', () => {
     const cat = cats.find(([k]) => k === sel.value)[1];
-    ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
+    if (sel.value === 'noViolation') {
+      ta.value = I18N.t('noViolationReply', { target: report.targetName });
+    } else {
+      ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
+    }
   });
   catWrap.append(catLabel, sel);
-  quick.append(qLabel, muteBtn, banBtn, noViolationBtn, catWrap, ta);
-  rev.append(info, ev, actions, quick);
+
+  // 发送处理结果：类别为“未发现违规”直接发送；违规类别下拉选择禁言/封号
+  const actions = document.createElement('div');
+  actions.className = 'mail-reply-actions';
+  const send = document.createElement('button');
+  send.className = 'send-btn';
+  send.textContent = I18N.t('sendResult');
+  const drop = document.createElement('div');
+  drop.className = 'penalty-dropdown hidden';
+  const muteOpt = document.createElement('button');
+  muteOpt.type = 'button';
+  muteOpt.textContent = '🔇 ' + I18N.t('muteNow');
+  muteOpt.addEventListener('click', () => {
+    drop.classList.add('hidden');
+    openMuteModal({ id: report.targetUserId, username: report.targetName }, { report });
+    setMuteMode('mute');
+  });
+  const banOpt = document.createElement('button');
+  banOpt.type = 'button';
+  banOpt.textContent = '⛔ ' + I18N.t('banNow');
+  banOpt.addEventListener('click', () => {
+    drop.classList.add('hidden');
+    openMuteModal({ id: report.targetUserId, username: report.targetName }, { report });
+    setMuteMode('ban');
+  });
+  drop.append(muteOpt, banOpt);
+  actions.append(send, drop);
+
+  const closeDrop = () => {
+    drop.classList.add('hidden');
+    document.removeEventListener('click', onDocClick);
+  };
+  const onDocClick = (e) => {
+    if (!drop.classList.contains('hidden') && !drop.contains(e.target) && e.target !== send) {
+      closeDrop();
+      document.removeEventListener('click', onDocClick);
+    }
+  };
+  send.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (sel.value === 'noViolation') {
+      const reply = ta.value.trim() || I18N.t('noViolationReply', { target: report.targetName });
+      resolveReport(report.id, { reply });
+      return;
+    }
+    if (drop.classList.contains('hidden')) {
+      drop.classList.remove('hidden');
+      document.addEventListener('click', onDocClick);
+    } else {
+      closeDrop();
+      document.removeEventListener('click', onDocClick);
+    }
+  });
+
+  rev.append(info, ev, catWrap, ta, actions);
   box.appendChild(rev);
 }
 
