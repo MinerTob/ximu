@@ -204,7 +204,14 @@ function refreshLangUI() {
   if (state.reportMode) updateReportBar();
   if (state.me && state.me.role !== 'user') renderAdminUsers();
   if (state.currentAdminUser) refreshAdminHeadButtons(state.currentAdminUser);
-  if (!mailboxView.classList.contains('hidden')) renderMailbox();
+  if (!mailboxView.classList.contains('hidden')) {
+    renderMailbox();
+    // 正在查看的邮件详情也随语言刷新
+    if (state.mailSelected) {
+      const item = (state.mailbox.items || []).find((i) => i.id === state.mailSelected);
+      if (item) showMailDetail(item);
+    }
+  }
 }
 
 document.querySelectorAll('.lang-select').forEach((sel) => {
