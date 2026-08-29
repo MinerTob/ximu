@@ -721,7 +721,10 @@ app.post('/api/report', requireAuth, (req, res) => {
 
   const report = db.addReport({ reporterId: req.user.id, targetUserId, messageIds, evidence, reason });
   const reporter = db.getUserById(req.user.id);
-  notifyAdmins('report', '收到新举报', `用户 ${reporter.username} 举报了 ${target.username}：${reason || '（未填写原因）'}`, report.id);
+  notifyAdmins('report', '收到新举报', `用户 ${reporter.username} 举报了 ${target.username}：${reason || '（未填写原因）'}`, report.id, {
+    tpl: 'reportNew',
+    vars: { reporter: reporter.username, target: target.username, reason: reason || '' },
+  });
   // 被举报人收到匿名系统通知：不透露举报人身份与具体内容
   db.addMailbox({
     userId: targetUserId,
@@ -729,16 +732,18 @@ app.post('/api/report', requireAuth, (req, res) => {
     title: '检举通知',
     body: '系统通知：您有一条内容被其他用户检举，管理员正在审核中。请遵守平台规范；若确认违规，将依据平台规范处理。',
     refId: report.id,
+    tpl: 'reportNotified',
+    vars: {},
   });
   io.to(`user:${targetUserId}`).emit('mailbox:new', {});
   res.status(201).json({ report });
 });
 
 // 给所有管理员/站主发送站内信
-function notifyAdmins(kind, title, body, refId) {
+function notifyAdmins(kind, title, body, refId, opts) {
   const adminIds = db.getAdminUserIds();
   for (const id of adminIds) {
-    db.addMailbox({ userId: id, kind, title, body, refId });
+    db.addMailbox({ userId: id, kind, title, body, refId, tpl: opts && opts.tpl, vars: opts && opts.vars });
     io.to(`user:${id}`).emit('mailbox:new', {});
   }
 }
@@ -924,7 +929,10 @@ app.post('/api/op/ban', requireAuth, requireOp, (req, res) => {
 
   // 通知所有在线用户刷新列表（被封禁账号显示封禁状态）
   io.emit('roles:changed', {});
-  notifyAdmins('system', '账号已封禁', `用户 ${target.username}（ID ${target.user_code}）已被永久封禁。原因：${reason || '未填写'}`);
+  notifyAdmins('system', '账号已封禁', `用户 ${target.username}（ID ${target.user_code}）已被永久封禁。原因：${reason || '未填写'}`, null, {
+    tpl: 'banRecord',
+    vars: { target: target.username, code: target.user_code, reason: reason || '' },
+  });
   res.json({ ok: true, banned: true, bannedAt: new Date().toISOString(), bannedBy: req.user.username, bannedReason: reason || '违规' });
 });
 
@@ -966,7 +974,10 @@ app.post('/api/op/ban-batch', requireAuth, requireOp, (req, res) => {
       }
     }
     io.emit('user:deleted', { userId: targetId, username: target.username, reason: '批量注销' });
-    notifyAdmins('system', '账号已注销', `用户 ${target.username}（ID ${target.user_code}）已被批量注销。原因：${reason || '未填写'}`);
+    notifyAdmins('system', '账号已注销', `用户 ${target.username}（ID ${target.user_code}）已被批量注销。原因：${reason || '未填写'}`, null, {
+      tpl: 'deleteRecord',
+      vars: { target: target.username, code: target.user_code, reason: reason || '' },
+    });
     deleted.push(targetId);
   }
   res.json({ ok: true, deleted, skipped });
@@ -998,6 +1009,8 @@ app.post('/api/op/report/:id/reply', requireAuth, requireOp, (req, res) => {
     title: '举报处理结果',
     body: `你举报的「${report.targetName}」已有处理结果：\n${reply}`,
     refId: id,
+    tpl: 'reportResult',
+    vars: { target: report.targetName, reply },
   });
   io.to(`user:${report.reporterId}`).emit('mailbox:new', {});
   res.json({ report: updated });
@@ -1012,6 +1025,7 @@ app.post('/api/op/report/:id/resolve', requireAuth, requireOp, (req, res) => {
   const targetBody = String((req.body && req.body.targetBody) || '').trim().slice(0, 1000);
   const targetTitle = String((req.body && req.body.targetTitle) || '').trim().slice(0, 60) || '账号处理通知';
   const removeContent = !!(req.body && req.body.removeContent);
+  const notice = (req.body && req.body.notice) || null;
 
   // 禁言/封号时：移除被举报的内容，并实时通知聊天双方刷新
   if (removeContent) {
@@ -1040,16 +1054,28 @@ app.post('/api/op/report/:id/resolve', requireAuth, requireOp, (req, res) => {
       title: '举报处理结果',
       body: reply,
       refId: id,
+      tpl: 'reportResultPlain',
+      vars: { reply },
     });
     io.to(`user:${report.reporterId}`).emit('mailbox:new', {});
   }
-  if (targetBody) {
+  if (targetBody || (notice && notice.type)) {
     db.addMailbox({
       userId: report.targetUserId,
       kind: 'system',
       title: targetTitle,
       body: targetBody,
       refId: id,
+      tpl: notice && notice.type ? 'systemNotice' : null,
+      vars:
+        notice && notice.type
+          ? {
+              penalty: notice.type,
+              time: String(notice.time || '').slice(0, 200),
+              reason: String(notice.reason || '').slice(0, 300),
+              adminName: String(notice.adminName || '').slice(0, 60),
+            }
+          : null,
     });
     io.to(`user:${report.targetUserId}`).emit('mailbox:new', {});
   }

@@ -235,6 +235,8 @@ function init() {
   ensureColumn('messages', 'forward_from', 'forward_from TEXT');
   ensureColumn('users', 'email', 'email TEXT');
   ensureColumn('mailbox', 'processed', 'processed INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('mailbox', 'tpl', 'tpl TEXT');
+  ensureColumn('mailbox', 'tpl_vars', 'tpl_vars TEXT');
 
   // 消息已读状态：升级前的旧消息一律视为已读，之后新收到的消息才会计入未读
   const msgCols = db.prepare('PRAGMA table_info(messages)').all().map((c) => c.name);
@@ -783,11 +785,13 @@ function getAdminUserIds() {
   return db.prepare("SELECT id FROM users WHERE role IN ('owner','admin')").all().map((r) => r.id);
 }
 
-function addMailbox({ userId, kind, title, body, refId = null }) {
+function addMailbox({ userId, kind, title, body, refId = null, tpl = null, vars = null }) {
   const now = new Date().toISOString();
   const info = db
-    .prepare('INSERT INTO mailbox (user_id, kind, title, body, ref_id, processed, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)')
-    .run(userId, kind, title, body, refId, now);
+    .prepare(
+      'INSERT INTO mailbox (user_id, kind, title, body, ref_id, processed, created_at, tpl, tpl_vars) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)'
+    )
+    .run(userId, kind, title, body, refId, now, tpl, vars ? JSON.stringify(vars) : null);
   return getMailboxItem(info.lastInsertRowid);
 }
 
@@ -797,11 +801,21 @@ function getMailboxItem(id) {
 }
 
 function serializeMailbox(row) {
+  let vars = null;
+  if (row.tpl_vars) {
+    try {
+      vars = JSON.parse(row.tpl_vars);
+    } catch (_) {
+      vars = null;
+    }
+  }
   return {
     id: row.id,
     kind: row.kind,
     title: row.title,
     body: row.body,
+    tpl: row.tpl || null,
+    vars,
     refId: row.ref_id || null,
     processed: !!row.processed,
     readAt: row.read_at || null,

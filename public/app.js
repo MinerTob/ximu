@@ -2471,14 +2471,16 @@ async function confirmMute() {
       const reply =
         `我们收到了您的检举。我们已移除相关违规内容，并对「${pendingReport.targetName}」的账号进行处罚：永久封禁` +
         `${reason ? '（原因：' + reason + '）' : ''}。感谢您的监督，欢迎继续反馈。`;
-      const targetBody =
-        `您的账号已被永久封禁，无法登录。\n\n` +
-        `封禁时间：${formatBanTime(data.bannedAt)}\n` +
-        `封禁原因：${reason || '违规'}\n` +
-        `执行管理员：${state.me ? state.me.username : '站主'}\n\n` +
-        `我们已移除相关违规内容，并对您的账号进行处罚。\n\n` +
-        `如有疑问，请联系管理员申诉。`;
-      await resolveReport(pendingReport.id, { reply, targetBody, targetTitle: '封号通知', removeContent: true });
+      await resolveReport(pendingReport.id, {
+        reply,
+        notice: {
+          type: 'ban',
+          time: formatBanTime(data.bannedAt),
+          reason: reason || '违规',
+          adminName: state.me ? state.me.username : '站主',
+        },
+        removeContent: true,
+      });
     }
   } else {
     const minutes = Number(muteCustom.value);
@@ -2496,14 +2498,16 @@ async function confirmMute() {
       const reply =
         `我们收到了您的检举。我们已移除相关违规内容，并对「${pendingReport.targetName}」的账号进行处罚：禁言至 ${until}` +
         `${reason ? '（原因：' + reason + '）' : ''}。感谢您的监督，欢迎继续反馈。`;
-      const targetBody =
-        `您的账号已被禁言。\n\n` +
-        `禁言时间：${until}\n` +
-        `禁言原因：${reason || '未填写'}\n` +
-        `执行管理员：${state.me ? state.me.username : '站主'}\n\n` +
-        `我们已移除相关违规内容，并对您的账号进行处罚。\n\n` +
-        `如有疑问，请联系管理员申诉。`;
-      await resolveReport(pendingReport.id, { reply, targetBody, targetTitle: '禁言通知', removeContent: true });
+      await resolveReport(pendingReport.id, {
+        reply,
+        notice: {
+          type: 'mute',
+          time: until,
+          reason: reason || '未填写',
+          adminName: state.me ? state.me.username : '站主',
+        },
+        removeContent: true,
+      });
     }
   }
   muteModal.classList.add('hidden');
@@ -2678,6 +2682,38 @@ async function openMailbox() {
   }
 }
 
+// 邮件箱信件按当前界面语言渲染；用户名等变量原样保留；老信件（无模板）回退显示原文
+function mailboxText(item) {
+  if (item.tpl) {
+    const vars = item.vars || {};
+    const rv = Object.assign({}, vars, { reason: vars.reason || I18N.t('noReason') });
+    switch (item.tpl) {
+      case 'reportNew':
+        return { title: I18N.t('mailReportNewTitle'), body: I18N.t('mailReportNewBody', rv) };
+      case 'reportNotified':
+        return { title: I18N.t('mailReportNotifiedTitle'), body: I18N.t('mailReportNotifiedBody', vars) };
+      case 'banRecord':
+        return { title: I18N.t('mailBanRecordTitle'), body: I18N.t('mailBanRecordBody', rv) };
+      case 'deleteRecord':
+        return { title: I18N.t('mailDeleteRecordTitle'), body: I18N.t('mailDeleteRecordBody', rv) };
+      case 'reportResult':
+        return { title: I18N.t('mailReportResultTitle'), body: I18N.t('mailReportResultBody', vars) };
+      case 'reportResultPlain':
+        return { title: I18N.t('mailReportResultTitle'), body: String(vars.reply || '') };
+      case 'systemNotice': {
+        const isBan = vars.penalty === 'ban';
+        return {
+          title: I18N.t(isBan ? 'mailBanNoticeTitle' : 'mailMuteNoticeTitle'),
+          body: I18N.t(isBan ? 'mailBanNoticeBody' : 'mailMuteNoticeBody', rv),
+        };
+      }
+      default:
+        break;
+    }
+  }
+  return { title: item.title, body: item.body };
+}
+
 function renderMailbox() {
   mailboxList.innerHTML = '';
   const items = state.mailbox.items || [];
@@ -2715,6 +2751,7 @@ function renderMailbox() {
       continue;
     }
     for (const item of section.list) {
+    const mt = mailboxText(item);
     const div = document.createElement('div');
     div.className = 'mail-item' + (item.readAt ? '' : ' unread') + (state.mailSelected === item.id ? ' active' : '');
 
@@ -2724,7 +2761,7 @@ function renderMailbox() {
     kindIcon.className = 'mail-item-kind';
     kindIcon.textContent = item.kind === 'report' ? '⚠️' : item.kind === 'reply' ? '↩️' : '📢';
     const title = document.createElement('span');
-    title.textContent = item.title;
+    title.textContent = mt.title;
     head.append(kindIcon, title);
     if (item.kind === 'report') {
       const badge = document.createElement('span');
@@ -2744,7 +2781,7 @@ function renderMailbox() {
 
     const body = document.createElement('div');
     body.className = 'mail-item-body';
-    body.textContent = item.body.length > 50 ? item.body.slice(0, 50) + '…' : item.body;
+    body.textContent = mt.body.length > 50 ? mt.body.slice(0, 50) + '…' : mt.body;
 
     const time = document.createElement('span');
     time.className = 'mail-item-time';
@@ -2789,15 +2826,16 @@ async function showMailDetail(item) {
   box.innerHTML = '';
   const wrap = document.createElement('div');
   wrap.className = 'mail-detail-wrap';
+  const mt = mailboxText(item);
   const head = document.createElement('div');
   head.className = 'mail-detail-title';
-  head.textContent = (item.kind === 'report' ? '⚠️ ' : item.kind === 'reply' ? '↩️ ' : '📢 ') + item.title;
+  head.textContent = (item.kind === 'report' ? '⚠️ ' : item.kind === 'reply' ? '↩️ ' : '📢 ') + mt.title;
   const time = document.createElement('div');
   time.className = 'mail-item-time';
   time.textContent = formatDateTime(item.createdAt);
   const body = document.createElement('div');
   body.className = 'mail-detail-body';
-  body.textContent = item.body;
+  body.textContent = mt.body;
   const actions = document.createElement('div');
   actions.className = 'mail-detail-actions';
   const delBtn = document.createElement('button');
