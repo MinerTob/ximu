@@ -2866,12 +2866,13 @@ function renderReportReview(box, report, processed) {
   ta.placeholder = I18N.t('replyPh');
   ta.value = report.adminReply || '';
   sel.addEventListener('change', () => {
-    const cat = cats.find(([k]) => k === sel.value)[1];
     if (sel.value === 'noViolation') {
       ta.value = I18N.t('noViolationReply', { target: report.targetName });
-    } else {
-      ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
+      return;
     }
+    // “其他”类别在回复模板里显示为「其他（管理员填写）」
+    const cat = sel.value === 'catOther' ? I18N.t('catOtherReplyLabel') : cats.find(([k]) => k === sel.value)[1];
+    ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
   });
   catWrap.append(catLabel, sel);
 
