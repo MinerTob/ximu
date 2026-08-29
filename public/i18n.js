@@ -32,7 +32,11 @@ window.I18N = (function () {
       '您的账号已被永久封禁，无法登录。\n\n封禁时间：{time}\n封禁原因：{reason}\n执行管理员：{adminName}\n\n我们已移除相关违规内容，并对您的账号进行处罚。\n\n如有疑问，请联系管理员申诉。',
     mailMuteNoticeTitle: '禁言通知',
     mailMuteNoticeBody:
-      '您的账号已被禁言。\n\n禁言时间：{time}\n禁言原因：{reason}\n执行管理员：{adminName}\n\n我们已移除相关违规内容，并对您的账号进行处罚。\n\n如有疑问，请联系管理员申诉。',
+      '您的账号已被禁言。\n\n禁言时间：{time}（UTC+8）\n禁言原因：{reason}\n执行管理员：{adminName}\n\n我们已移除相关违规内容，并对您的账号进行处罚。\n\n如有疑问，请联系管理员申诉。',
+    mailPenaltyReplyBan:
+      '我们收到了您的检举。我们已移除相关违规内容，并对「{target}」的账号进行处罚：永久封禁（原因：{reason}）。感谢您的监督，欢迎继续反馈。',
+    mailPenaltyReplyMute:
+      '我们收到了您的检举。我们已移除相关违规内容，并对「{target}」的账号进行处罚：禁言至 {time}（UTC+8）（原因：{reason}）。感谢您的监督，欢迎继续反馈。',
     replyPh: '填写处理结果，回复将发送给举报人', sendResult: '发送处理结果',
     quickPenalty: '快捷处罚', muteNow: '禁言', banNow: '封号',
     noViolation: '未发现违规', noAction: '不做处理',
@@ -110,7 +114,11 @@ window.I18N = (function () {
       '您的帳號已被永久封禁，無法登入。\n\n封禁時間：{time}\n封禁原因：{reason}\n執行管理員：{adminName}\n\n我們已移除相關違規內容，並對您的帳號進行處罰。\n\n如有疑問，請聯繫管理員申訴。',
     mailMuteNoticeTitle: '禁言通知',
     mailMuteNoticeBody:
-      '您的帳號已被禁言。\n\n禁言時間：{time}\n禁言原因：{reason}\n執行管理員：{adminName}\n\n我們已移除相關違規內容，並對您的帳號進行處罰。\n\n如有疑問，請聯繫管理員申訴。',
+      '您的帳號已被禁言。\n\n禁言時間：{time}（UTC+8）\n禁言原因：{reason}\n執行管理員：{adminName}\n\n我們已移除相關違規內容，並對您的帳號進行處罰。\n\n如有疑問，請聯繫管理員申訴。',
+    mailPenaltyReplyBan:
+      '我們收到了您的檢舉。我們已移除相關違規內容，並對「{target}」的帳號進行處罰：永久封禁（原因：{reason}）。感謝您的監督，歡迎繼續回饋。',
+    mailPenaltyReplyMute:
+      '我們收到了您的檢舉。我們已移除相關違規內容，並對「{target}」的帳號進行處罰：禁言至 {time}（UTC+8）（原因：{reason}）。感謝您的監督，歡迎繼續回饋。',
     replyPh: '填寫處理結果，回覆將傳送給檢舉人', sendResult: '傳送處理結果',
     quickPenalty: '快速處罰', muteNow: '禁言', banNow: '封號',
     noViolation: '未發現違規', noAction: '不做處理',
@@ -188,7 +196,11 @@ window.I18N = (function () {
       'Your account has been permanently banned and cannot log in.\n\nBanned at: {time}\nReason: {reason}\nHandled by: {adminName}\n\nWe have removed the reported content and taken action against your account.\n\nIf you have questions, please contact an administrator.',
     mailMuteNoticeTitle: 'Mute Notice',
     mailMuteNoticeBody:
-      'Your account has been muted.\n\nMuted until: {time}\nReason: {reason}\nHandled by: {adminName}\n\nWe have removed the reported content and taken action against your account.\n\nIf you have questions, please contact an administrator.',
+      'Your account has been muted.\n\nMuted until: {time} (UTC+8)\nReason: {reason}\nHandled by: {adminName}\n\nWe have removed the reported content and taken action against your account.\n\nIf you have questions, please contact an administrator.',
+    mailPenaltyReplyBan:
+      'We received your report. We have removed the reported content and taken action against "{target}": permanent ban (Reason: {reason}). Thank you for reporting and please continue to share feedback.',
+    mailPenaltyReplyMute:
+      'We received your report. We have removed the reported content and taken action against "{target}": muted until {time} (UTC+8) (Reason: {reason}). Thank you for reporting and please continue to share feedback.',
     replyPh: 'Write a resolution for the reporter', sendResult: 'Send Resolution',
     quickPenalty: 'Quick Action', muteNow: 'Mute', banNow: 'Ban',
     noViolation: 'No Violation Found', noAction: 'No Action',

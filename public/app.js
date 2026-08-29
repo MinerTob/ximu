@@ -2480,6 +2480,8 @@ async function confirmMute() {
         `${reason ? '（原因：' + reason + '）' : ''}。感谢您的监督，欢迎继续反馈。`;
       await resolveReport(pendingReport.id, {
         reply,
+        replyTpl: 'mailPenaltyReplyBan',
+        replyVars: { target: pendingReport.targetName, reason: reason || '违规' },
         notice: {
           type: 'ban',
           time: formatBanTime(data.bannedAt),
@@ -2501,12 +2503,14 @@ async function confirmMute() {
     if (!res.ok) return toast(data.error || '禁言失败');
     toast(`已禁言 ${minutes} 分钟`);
     if (pendingReport) {
-      const until = formatDateTimeCN(data.mutedUntil) + '（UTC+8）';
+      const until = formatDateTimeCN(data.mutedUntil);
       const reply =
         `我们收到了您的检举。我们已移除相关违规内容，并对「${pendingReport.targetName}」的账号进行处罚：禁言至 ${until}` +
-        `${reason ? '（原因：' + reason + '）' : ''}。感谢您的监督，欢迎继续反馈。`;
+        `（UTC+8）${reason ? '（原因：' + reason + '）' : ''}。感谢您的监督，欢迎继续反馈。`;
       await resolveReport(pendingReport.id, {
         reply,
+        replyTpl: 'mailPenaltyReplyMute',
+        replyVars: { target: pendingReport.targetName, time: until, reason: reason || '未填写' },
         notice: {
           type: 'mute',
           time: until,
@@ -2707,6 +2711,8 @@ function mailboxText(item) {
         return { title: I18N.t('mailReportResultTitle'), body: I18N.t('mailReportResultBody', vars) };
       case 'reportResultPlain':
         return { title: I18N.t('mailReportResultTitle'), body: String(vars.reply || '') };
+      case 'reportReply':
+        return { title: I18N.t('mailReportResultTitle'), body: I18N.t(String(vars.replyTpl || ''), vars.replyVars || {}) };
       case 'systemNotice': {
         const isBan = vars.penalty === 'ban';
         return {
@@ -2961,8 +2967,19 @@ function renderReportReview(box, report, processed) {
   send.addEventListener('click', (e) => {
     e.stopPropagation();
     if (sel.value === 'noViolation') {
-      const reply = ta.value.trim() || I18N.t('noViolationReply', { target: report.targetName });
-      resolveReport(report.id, { reply });
+      const reply = ta.value.trim();
+      const defaultReply = I18N.t('noViolationReply', { target: report.targetName });
+      if (reply && reply !== defaultReply) {
+        // 管理员手动改过：按原文发送（自拟内容）
+        resolveReport(report.id, { reply });
+      } else {
+        // 默认模板：结构化发送，收信人按自己的界面语言看到
+        resolveReport(report.id, {
+          reply: defaultReply,
+          replyTpl: 'noViolationReply',
+          replyVars: { target: report.targetName },
+        });
+      }
       return;
     }
     if (drop.classList.contains('hidden')) {

@@ -1022,6 +1022,15 @@ app.post('/api/op/report/:id/resolve', requireAuth, requireOp, (req, res) => {
   const report = db.getReportById(id);
   if (!report) return res.status(404).json({ error: '举报不存在' });
   const reply = String((req.body && req.body.reply) || '').trim().slice(0, 1000);
+  const replyTpl = String((req.body && req.body.replyTpl) || '').trim().slice(0, 60);
+  const replyVarsRaw = (req.body && req.body.replyVars) || null;
+  let replyVars = null;
+  if (replyVarsRaw && typeof replyVarsRaw === 'object' && !Array.isArray(replyVarsRaw)) {
+    replyVars = {};
+    for (const k of Object.keys(replyVarsRaw)) {
+      replyVars[k] = String(replyVarsRaw[k] == null ? '' : replyVarsRaw[k]).slice(0, 300);
+    }
+  }
   const targetBody = String((req.body && req.body.targetBody) || '').trim().slice(0, 1000);
   const targetTitle = String((req.body && req.body.targetTitle) || '').trim().slice(0, 60) || '账号处理通知';
   const removeContent = !!(req.body && req.body.removeContent);
@@ -1047,15 +1056,15 @@ app.post('/api/op/report/:id/resolve', requireAuth, requireOp, (req, res) => {
 
   db.replyReport(id, reply || null);
   db.markReportMailboxProcessed(id);
-  if (reply) {
+  if (reply || replyTpl) {
     db.addMailbox({
       userId: report.reporterId,
       kind: 'reply',
       title: '举报处理结果',
       body: reply,
       refId: id,
-      tpl: 'reportResultPlain',
-      vars: { reply },
+      tpl: replyTpl ? 'reportReply' : 'reportResultPlain',
+      vars: replyTpl ? { replyTpl, replyVars } : { reply },
     });
     io.to(`user:${report.reporterId}`).emit('mailbox:new', {});
   }
