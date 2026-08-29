@@ -2868,54 +2868,7 @@ function renderReportReview(box, report, processed) {
     resolveReport(report.id, { reply });
   });
   quick.append(qLabel, muteBtn, banBtn, noViolationBtn);
-
-  const catWrap = document.createElement('div');
-  catWrap.className = 'cat-wrap';
-  const catLabel = document.createElement('span');
-  catLabel.textContent = I18N.t('feedbackCategory');
-  const sel = document.createElement('select');
-  const cats = [
-    ['catPorn', I18N.t('catPorn')],
-    ['catPolitical', I18N.t('catPolitical')],
-    ['catRights', I18N.t('catRights')],
-    ['catFraud', I18N.t('catFraud')],
-    ['catOther', I18N.t('catOther')],
-  ];
-  for (const [k, label] of cats) {
-    const opt = document.createElement('option');
-    opt.value = k;
-    opt.textContent = label;
-    sel.appendChild(opt);
-  }
-  const ta = document.createElement('textarea');
-  ta.placeholder = I18N.t('replyPh');
-  ta.value = report.adminReply || '';
-  sel.addEventListener('change', () => {
-    const cat = cats.find(([k]) => k === sel.value)[1];
-    ta.value = I18N.t('replyTemplate', { target: report.targetName, category: cat });
-  });
-  const actions = document.createElement('div');
-  actions.className = 'mail-reply-actions';
-  const send = document.createElement('button');
-  send.className = 'send-btn';
-  send.textContent = I18N.t('sendResult');
-  send.addEventListener('click', async () => {
-    const reply = ta.value.trim();
-    if (!reply) return toastErr('内容不能为空');
-    const r = await fetch(`/api/op/report/${report.id}/reply`, {
-      method: 'POST',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reply }),
-    });
-    const d = await r.json();
-    if (!r.ok) return toastErr(d.error || '发送失败');
-    toast(I18N.t('resultSent'));
-    state.mailSelected = null;
-    loadMailbox();
-  });
-  actions.appendChild(send);
-  catWrap.append(catLabel, sel);
-  rev.append(info, ev, quick, catWrap, ta, actions);
+  rev.append(info, ev, quick);
   box.appendChild(rev);
 }
 
