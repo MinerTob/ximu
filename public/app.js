@@ -6,6 +6,7 @@ const state = {
   token: getToken(),
   me: null,
   mailDetailToken: 0,
+  banNoticeData: null,
   users: [],
   onlineUserIds: new Set(),
   selectedUserId: null,
@@ -205,6 +206,10 @@ function refreshLangUI() {
   if (state.reportMode) updateReportBar();
   if (state.me && state.me.role !== 'user') renderAdminUsers();
   if (state.currentAdminUser) refreshAdminHeadButtons(state.currentAdminUser);
+  // 打开的弹窗/横幅也随语言实时刷新
+  applyMyMute();
+  if (!muteModal.classList.contains('hidden') && state.muteMode) setMuteMode(state.muteMode);
+  if (!banNoticeModal.classList.contains('hidden') && state.banNoticeData) renderBanNotice();
   if (!mailboxView.classList.contains('hidden')) {
     renderMailbox();
     // 正在查看的邮件详情也随语言刷新
@@ -1704,13 +1709,20 @@ function formatBanTime(iso) {
   return `${get('year')}.${get('month')}.${get('day')}.${get('hour')}:${get('minute')}(UTC+8)-∞`;
 }
 
-function showBanNotice(data) {
+function renderBanNotice() {
+  const data = state.banNoticeData;
+  if (!data) return;
   const time = formatBanTime(data.bannedAt);
   banNoticeText.textContent = I18N.t('banNoticeBody', {
     time,
     reason: data.bannedReason || I18N.t('noReason'),
     admin: data.bannedBy || I18N.t('ownerRole'),
   });
+}
+
+function showBanNotice(data) {
+  state.banNoticeData = data;
+  renderBanNotice();
   banNoticeModal.classList.remove('hidden');
   bringToFront(banNoticeModal);
 }
