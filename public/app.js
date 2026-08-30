@@ -5,6 +5,7 @@ console.log(`析木聊天室 v${APP_VERSION}`);
 const state = {
   token: getToken(),
   me: null,
+  mailDetailToken: 0,
   users: [],
   onlineUserIds: new Set(),
   selectedUserId: null,
@@ -2681,6 +2682,7 @@ async function openMailbox() {
   mailboxView.classList.remove('hidden');
   bringToFront(mailboxView);
   state.mailSelected = null;
+  state.mailDetailToken = 0;
   const isAdmin = state.me && (state.me.role === 'owner' || state.me.role === 'admin');
   $('mailbox-title').textContent = isAdmin ? I18N.t('adminMailbox') : I18N.t('mailboxButton');
   $('mailbox-detail').innerHTML = '<div class="mail-empty">' + I18N.t('mailboxEmpty') + '</div>';
@@ -2839,6 +2841,7 @@ async function deleteMail(id) {
 async function showMailDetail(item) {
   const box = $('mailbox-detail');
   box.innerHTML = '';
+  const token = ++state.mailDetailToken;
   const wrap = document.createElement('div');
   wrap.className = 'mail-detail-wrap';
   const mt = mailboxText(item);
@@ -2865,6 +2868,8 @@ async function showMailDetail(item) {
     const res = await fetch(`/api/op/report/${item.refId}`, { headers: authHeaders() });
     if (res.ok) {
       const { report } = await res.json();
+      // 快速多次点击时，只保留最后一次打开的检举处理，旧请求回来后直接丢弃
+      if (token !== state.mailDetailToken || state.mailSelected !== item.id) return;
       renderReportReview(box, report, !!item.processed);
     }
   }
