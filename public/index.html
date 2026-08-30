@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>析木聊天室</title>
-  <link rel="stylesheet" href="/style.css?v=5.6.3">
+  <link rel="stylesheet" href="/style.css?v=5.6.4">
 </head>
 <body>
   <!-- 登录 / 注册 -->
@@ -167,10 +167,10 @@
   <!-- 封号通知 -->
   <div id="ban-notice-modal" class="modal-overlay hidden">
     <div class="modal-card ban-notice-card">
-      <h3>⛔ 封号通知</h3>
+      <h3 data-i18n="banNoticeTitle">⛔ 封号通知</h3>
       <pre id="ban-notice-text" class="ban-notice-text"></pre>
       <div class="mute-modal-actions">
-        <button id="ban-notice-close" class="logout-btn light">我知道了</button>
+        <button id="ban-notice-close" class="logout-btn light" data-i18n="warningOk">我知道了</button>
       </div>
     </div>
   </div>
@@ -189,14 +189,16 @@
           <input id="mute-custom" type="text" inputmode="numeric" pattern="[0-9]*" value="30" autocomplete="off">
         </label>
         <div class="mute-quick" id="mute-quick">
-          <button type="button" data-min="5">5分钟</button>
-          <button type="button" data-min="30">30分钟</button>
-          <button type="button" data-min="60">1小时</button>
-          <button type="button" data-min="1440">1天</button>
+          <button type="button" data-min="5" data-i18n="muteQuick5">5分钟</button>
+          <button type="button" data-min="30" data-i18n="muteQuick30">30分钟</button>
+          <button type="button" data-min="60" data-i18n="muteQuick60">1小时</button>
+          <button type="button" data-min="1440" data-i18n="muteQuick1440">1天</button>
         </div>
       </div>
       <div id="ban-body" class="hidden">
-        <p class="ban-warning">⛔ 封号 = <b>永久封禁（保留账号）</b>：该账号将无法登录，登录时会显示封号通知；只能由管理员手动解封。请谨慎操作。</p>
+        <p class="ban-warning">
+          <span data-i18n="banWarningPre">⛔ 封号 = </span><b data-i18n="banWarningBold">永久封禁（保留账号）</b><span data-i18n="banWarningPost">：该账号将无法登录，登录时会显示封号通知；只能由管理员手动解封。请谨慎操作。</span>
+        </p>
       </div>
       <label class="mute-custom">
         <span data-i18n="muteReasonLabel">原因（可选）</span>
@@ -385,8 +387,8 @@
   <!-- 图片查看灯箱：点击图片全屏放大，点任意处关闭 -->
   <div id="lightbox" class="lightbox hidden"><img id="lightbox-img" alt="查看原图"></div>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/vendor/jsqr.js?v=5.6.3"></script>
-  <script src="/i18n.js?v=5.6.3"></script>
-  <script src="/app.js?v=5.6.3"></script>
+  <script src="/vendor/jsqr.js?v=5.6.4"></script>
+  <script src="/i18n.js?v=5.6.4"></script>
+  <script src="/app.js?v=5.6.4"></script>
 </body>
 </html>

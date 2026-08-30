@@ -356,7 +356,9 @@ const SERVER_ERR_ZH = {
 
 function translateServerError(msg) {
   const key = SERVER_ERR_ZH[msg];
-  return key ? I18N.t(key) : msg;
+  if (key) return I18N.t(key);
+  if (msg && msg.includes('已被禁言')) return I18N.t('myMuteToast');
+  return msg;
 }
 
 function toastErr(msg) {
@@ -978,7 +980,10 @@ function renderUserList() {
       const tag = document.createElement('span');
       tag.className = 'mute-tag';
       tag.textContent = '🔇 ' + I18N.t('muted');
-      tag.title = user.mutedUntil === 'forever' ? '永久禁言' : `禁言至 ${formatDateTime(user.mutedUntil)}`;
+      tag.title =
+        user.mutedUntil === 'forever'
+          ? I18N.t('mutedForeverTip')
+          : I18N.t('mutedUntilTip', { time: formatDateTime(user.mutedUntil) });
       li.appendChild(tag);
     }
     if (unreadCount > 0) {
@@ -1519,7 +1524,7 @@ jumpPill.addEventListener('click', () => scrollToBottom(true));
 
 /* ---------- 发送文本 ---------- */
 async function sendText() {
-  if (state.me && state.me.muted) return toast('您当前已被禁言，无法发送消息');
+  if (state.me && state.me.muted) return toast(I18N.t('myMuteToast'));
   const text = messageInput.value.trim();
   if (!text || state.selectedUserId == null) return;
   // 微信式服务器加密：明文经 HTTPS 传输，服务器加密后入库，任何设备登录都能看
@@ -1555,7 +1560,7 @@ fileInput.addEventListener('change', async () => {
     toast('请先选择一个聊天对象');
     return;
   }
-  if (state.me && state.me.muted) return toast('您当前已被禁言，无法发送消息');
+  if (state.me && state.me.muted) return toast(I18N.t('myMuteToast'));
   if (!/^(image|video)\//.test(file.type)) {
     toast('仅支持图片或视频文件');
     return;
@@ -1700,12 +1705,11 @@ function formatBanTime(iso) {
 
 function showBanNotice(data) {
   const time = formatBanTime(data.bannedAt);
-  banNoticeText.textContent =
-    `您的账号已被永久封禁，无法登录。\n\n` +
-    `封禁时间：${time}\n` +
-    `封禁原因：${data.bannedReason || '违规'}\n` +
-    `执行管理员：${data.bannedBy || '站主'}\n\n` +
-    `如有疑问，请联系管理员申诉。`;
+  banNoticeText.textContent = I18N.t('banNoticeBody', {
+    time,
+    reason: data.bannedReason || I18N.t('noReason'),
+    admin: data.bannedBy || I18N.t('ownerRole'),
+  });
   banNoticeModal.classList.remove('hidden');
   bringToFront(banNoticeModal);
 }
@@ -1733,10 +1737,10 @@ function formatDateTimeCN(iso) {
 
 /* ---------- 禁言（普通用户侧） ---------- */
 function buildMyMuteText(user) {
-  const reason = user.mutedReason ? `，原因：${user.mutedReason}` : '';
-  if (user.mutedUntil === 'forever') return `您已被禁言${reason}，无法发送消息`;
+  const reasonText = user.mutedReason ? I18N.t('muteReasonPrefix') + user.mutedReason : '';
+  if (user.mutedUntil === 'forever') return I18N.t('myMuteForever', { reasonText });
   const time = formatDateTimeCN(user.mutedUntil);
-  return `您已被禁言至 ${time || '（时间未知）'}（UTC+8）${reason}，无法发送消息`;
+  return I18N.t('myMuteUntil', { time: time || I18N.t('timeUnknown'), reasonText });
 }
 
 function applyMyMute() {
@@ -1946,7 +1950,10 @@ function renderAdminUsers() {
       const tag = document.createElement('span');
       tag.className = 'mute-tag';
       tag.textContent = '🔇';
-      tag.title = user.mutedUntil === 'forever' ? '永久禁言' : `禁言至 ${formatDateTime(user.mutedUntil)}`;
+      tag.title =
+        user.mutedUntil === 'forever'
+          ? I18N.t('mutedForeverTip')
+          : I18N.t('mutedUntilTip', { time: formatDateTime(user.mutedUntil) });
       li.appendChild(tag);
     }
     if (user.warningCount > 0) {
@@ -2026,7 +2033,7 @@ function refreshAdminHeadButtons(user) {
     muteBtn.style.display = '';
     const canMute = state.me.role === 'owner' || user.role !== 'owner';
     if (!canMute) {
-      muteBtn.textContent = '不可禁言';
+      muteBtn.textContent = I18N.t('cannotMute');
       muteBtn.disabled = true;
       muteBtn.onclick = null;
     } else if (user.muted || user.banned) {
@@ -2460,20 +2467,15 @@ async function confirmMute() {
     : '';
   const pendingReport = state.reportPending;
   if (state.muteMode === 'ban') {
-    if (
-      !window.confirm(
-        `确定永久封禁「${target.username}」吗？该账号将无法登录（保留账号），只能手动解封。`
-      )
-    )
-      return;
+    if (!window.confirm(I18N.t('confirmBanDialog', { username: target.username }))) return;
     const res = await fetch('/api/op/ban', {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: target.id, reason }),
     });
     const data = await res.json();
-    if (!res.ok) return toast(data.error || '封号失败');
-    toast('已永久封禁该账号');
+    if (!res.ok) return toast(translateServerError(data.error || I18N.t('banFailed')));
+    toast(I18N.t('banDone'));
     if (pendingReport) {
       const reply =
         `我们收到了您的检举。我们已移除相关违规内容，并对「${pendingReport.targetName}」的账号进行处罚：永久封禁` +
@@ -2493,15 +2495,15 @@ async function confirmMute() {
     }
   } else {
     const minutes = Number(muteCustom.value);
-    if (!Number.isFinite(minutes) || minutes <= 0) return toast('请输入有效的禁言时长（分钟）');
+    if (!Number.isFinite(minutes) || minutes <= 0) return toast(I18N.t('muteDurationInvalid'));
     const res = await fetch('/api/op/mute', {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: target.id, minutes, reason }),
     });
     const data = await res.json();
-    if (!res.ok) return toast(data.error || '禁言失败');
-    toast(`已禁言 ${minutes} 分钟`);
+    if (!res.ok) return toast(translateServerError(data.error || I18N.t('muteFailed')));
+    toast(I18N.t('muteDone', { minutes }));
     if (pendingReport) {
       const until = formatDateTimeCN(data.mutedUntil);
       const reply =
@@ -2528,15 +2530,15 @@ async function confirmMute() {
 }
 
 async function unmuteUser(user) {
-  if (!window.confirm(`确定解除「${user.username}」的禁言吗？`)) return;
+  if (!window.confirm(I18N.t('confirmUnmuteDialog', { username: user.username }))) return;
   const res = await fetch('/api/op/unmute', {
     method: 'POST',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId: user.id }),
   });
   const data = await res.json();
-  if (!res.ok) return toast(data.error || '解封失败');
-  toast('已解除禁言');
+  if (!res.ok) return toast(translateServerError(data.error || I18N.t('unmuteFailed')));
+  toast(I18N.t('unmuteDone'));
   refreshAdminDetail(state.currentAdminUser);
 }
 
